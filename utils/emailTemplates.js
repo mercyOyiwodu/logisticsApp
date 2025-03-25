@@ -1,4 +1,4 @@
-const signUpTemplate =(verifyLink,firstName)=>{
+exports.signUpTemplate =(verifyLink,firstName)=>{
     return `
     <!DOCTYPE html>
     <html lang="en">
@@ -184,6 +184,3 @@ exports.forgotPasswordTemplate =(verifyLink,firstName)=>{
   
     `
 }
-
-
-module.exports= { signUpTemplate }

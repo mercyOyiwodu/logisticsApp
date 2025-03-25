@@ -1,10 +1,17 @@
 const userModel = require('../models/user');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const sendEmail = require('../middleware/nodemailer');
+const jwt = require('jsonwebtoken');
+const { signUpTemplate } = require('../utils/emailTemplates');
+const { validate } = require('../helper/utilities');
+const { registerUserSchema, loginUserSchema } = require('../validation/user');
+
 
 exports.register = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const validated = await validate(req.body, registerUserSchema)
+        const { name, email, password } = validated;
         const user = await userModel.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(400).json({
@@ -199,7 +206,8 @@ exports.resetPassword = async (req, res) => {
 };
 exports.login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const validated = await validate(req.body, loginUserSchema)
+        const { email, password } = validated;
         const user = await userModel.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(400).json({
