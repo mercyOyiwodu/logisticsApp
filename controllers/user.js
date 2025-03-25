@@ -5,8 +5,8 @@ const jwt = require('jsonwebtoken');
 exports.register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
-        const user = await userModel.findOne({email: email.toLowerCase()});
-        if(!user) {
+        const user = await userModel.findOne({ email: email.toLowerCase() });
+        if (!user) {
             return res.status(400).json({
                 message: 'user not found'
             });
@@ -20,7 +20,7 @@ exports.register = async (req, res) => {
             password: hashedPassword
         });
 
-        const token = jwt.sign({ _id: newUser._id }, process.env.TOKEN_SECRET,{ expiresIn: '1h' });
+        const token = jwt.sign({ _id: newUser._id }, process.env.TOKEN_SECRET, { expiresIn: '1h' });
         const link = `${req.protocol}://${req.get('host')}/api/v1/user-verify/${token}`
 
         const firstName = newUser.fullName.split(' ')[1]
@@ -29,7 +29,7 @@ exports.register = async (req, res) => {
         const mailDetails = {
             subject: 'Welcome Email',
             email: newUser.email,
-            html : signUpTemplate(link, firstName)
+            html: signUpTemplate(link, firstName)
         }
 
         await sendEmail(mailDetails)
@@ -37,7 +37,7 @@ exports.register = async (req, res) => {
         await newUser.save();
         res.status(201).json({
             message: 'User registered successfully',
-            data:newUser
+            data: newUser
         });
     } catch (error) {
         console.log(error);
@@ -48,33 +48,33 @@ exports.register = async (req, res) => {
 };
 exports.verifyEmail = async (req, res) => {
     try {
-        const {token} = req.params
+        const { token } = req.params
         if (!token) {
             return res.status(404).json({
-                message: "token not found" 
+                message: "token not found"
             })
         }
-        const decodedToken = jwt.verify(token,process.env.JWT_SECRET);
-        const user= await userModel.findById(decodedToken.userId)
-        if(!user){
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await userModel.findById(decodedToken.userId)
+        if (!user) {
             return res.status(404).json({
                 message: "user not found"
             })
         }
-        if (user.isVerify=== true){
+        if (user.isVerify === true) {
             return res.status(401).json({
                 message: "user has already been verified"
             })
         }
-        user.isVerify= true
+        user.isVerify = true
         await user.save()
         res.status(200).json({
             message: "user verified successfully"
         })
     } catch (error) {
         console.log(error.message)
-        if(error instanceof jwt.JsonWebTokenError) {
-            return res.status(401).json({message: 'verification link expired'})
+        if (error instanceof jwt.JsonWebTokenError) {
+            return res.status(401).json({ message: 'verification link expired' })
         }
         res.status(500).json({
             message: 'Error verifying user'
@@ -83,22 +83,22 @@ exports.verifyEmail = async (req, res) => {
 };
 exports.resendVerificationEmail = async (req, res) => {
     try {
-        
-        const validated = await validate(req.body , verificationEmailSchema)
 
-        const {email} = validated
+        const validated = await validate(req.body, verificationEmailSchema)
 
-        if(!email) {
-            return res.status(400).json({message: 'please enter email address'})
+        const { email } = validated
+
+        if (!email) {
+            return res.status(400).json({ message: 'please enter email address' })
         }
 
-        const user = await userModel.findOne({email: email.toLowerCase()})
+        const user = await userModel.findOne({ email: email.toLowerCase() })
 
-        if(!user) {
-            return res.status(404).json({message: 'user not found'})
+        if (!user) {
+            return res.status(404).json({ message: 'user not found' })
         }
 
-        const token = await jwt.sign({ userId: user._id}, process.env.JWT_SECRET, { expiresIn: '1h'})
+        const token = await jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' })
 
         const link = `${req.protocol}://${req.get('host')}/api/v1/user-verify/${token}`
 
@@ -114,9 +114,9 @@ exports.resendVerificationEmail = async (req, res) => {
 
         await sendEmail(mailOptions)
 
-        res.status(200).json({message: 'verification email sent, please check mail box'})
-
-
+        res.status(200).json({ 
+            message: 'verification email sent, please check mail box'
+         })
     } catch (error) {
         console.log(error.message)
         res.status(500).json({
@@ -127,19 +127,19 @@ exports.resendVerificationEmail = async (req, res) => {
 
 exports.forgotPassword = async (req, res) => {
     try {
-        const {email} = req.body
-        if(!email) {
-            return res.status(400).json({message: 'please enter email address'})
+        const { email } = req.body
+        if (!email) {
+            return res.status(400).json({ message: 'please enter email address' })
         }
 
-        const user  = await userModel.findOne({ email: email.toLowerCase() });
-  
+        const user = await userModel.findOne({ email: email.toLowerCase() });
+
         if (!user) {
-          return res.status(404).json({
-            message: 'Account not found'
-          })
+            return res.status(404).json({
+                message: 'Account not found'
+            })
         };
-    
+
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1hour' });
         const link = `${req.protocol}://${req.get('host')}/api/v1/forgot-password/${token}`;
         const firstName = user.fullName.split(' ')[0]
@@ -147,16 +147,16 @@ exports.forgotPassword = async (req, res) => {
             email: user.email,
             subject: 'Reset Password',
             html: forgotTemplate(link, firstName)
-          };
-      
-          await sendEmail(mailOptions);
-          return res.status(200).json({
+        };
+
+        await sendEmail(mailOptions);
+        return res.status(200).json({
             message: 'Link has been sent to email address'
-          })
+        })
     } catch (error) {
         console.log(error.message)
         res.status(500).json({
-            message: 'error sending verification email'  
+            message: 'error sending verification email'
         })
     }
 
@@ -164,7 +164,7 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
-        const { password , comfirmPassword} = req.body;
+        const { password, comfirmPassword } = req.body;
         if (!token) {
             return res.status(404).json({
                 message: 'token not found'
@@ -194,7 +194,7 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({
             message: 'error resetting password'
         })
-        
+
     }
 };
 exports.login = async (req, res) => {
@@ -214,7 +214,7 @@ exports.login = async (req, res) => {
         }
         user.isLoggedin = true;
         await user.save();
-        const token = jwt.sign({ _id: user._id ,isLoggedin: user.isLoggedin}, process.env.TOKEN_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ _id: user._id, isLoggedin: user.isLoggedin }, process.env.TOKEN_SECRET, { expiresIn: '1h' });
         res.status(200).json({
             message: 'login successful',
             token
