@@ -1,6 +1,5 @@
 const userModel = require('../models/user');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const sendEmail = require('../middleware/nodemailer');
 const jwt = require('jsonwebtoken');
 const { signUpTemplate } = require('../utils/emailTemplates');
@@ -40,7 +39,6 @@ exports.register = async (req, res) => {
         }
 
         await sendEmail(mailDetails)
-
         await newUser.save();
         res.status(201).json({
             message: 'User registered successfully',
@@ -90,19 +88,22 @@ exports.verifyEmail = async (req, res) => {
 };
 exports.resendVerificationEmail = async (req, res) => {
     try {
-
         const validated = await validate(req.body, verificationEmailSchema)
 
         const { email } = validated
 
         if (!email) {
-            return res.status(400).json({ message: 'please enter email address' })
-        }
+            return res.status(400).json({
+                message: 'please enter email address'
+            })
+        };
 
         const user = await userModel.findOne({ email: email.toLowerCase() })
 
         if (!user) {
-            return res.status(404).json({ message: 'user not found' })
+            return res.status(404).json({
+                message: 'user not found'
+            })
         }
 
         const token = await jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' })
@@ -121,9 +122,9 @@ exports.resendVerificationEmail = async (req, res) => {
 
         await sendEmail(mailOptions)
 
-        res.status(200).json({ 
+        res.status(200).json({
             message: 'verification email sent, please check mail box'
-         })
+        })
     } catch (error) {
         console.log(error.message)
         res.status(500).json({
