@@ -1,4 +1,4 @@
-const userModel = require('../models/userModel')
+const userModel = require('../models/user')
 const jwt = require('jsonwebtoken')
 
 
@@ -17,20 +17,20 @@ exports.authenticate = async (req, res, next) => {
                 message: 'Invalid Token'
             })
         }
-        const decodedToken =jwt.verify(token, process.env.JWT_SECRET)
-        const user = await userModel.findById(decodedToken.userId)
+        const decodedToken = jwt.verify(token, process.env.TOKEN_SECRET || 'fallback_secret')
+        const user = await userModel.findById(decodedToken._id)
 
         if (!user) {
             return res.status(400).json({
                 message: 'Authentication failed : user not found'
             })
         }
-        if (user.isLoggedIn !== decodedToken.isLoggedIn) {
+        if (!user.isLoggedin) {
             return res.status(401).json({
-                message: 'Unathorized: you must be logged in to perform this action'
+                message: 'Unauthorized: you must be logged in to perform this action'
             })
         }
-        req.user = decodedToken
+        req.user = user
         await user.save()
 
         next()
@@ -62,19 +62,19 @@ exports.authenticateAdmin = async (req, res, next) => {
                 message: 'Invalid Token'
             })
         }
-        const decodedToken =jwt.verify(token, process.env.JWT_SECRET)
-        const user = await userModel.findById(decodedToken.userId)
+        const decodedToken = jwt.verify(token, process.env.TOKEN_SECRET || 'fallback_secret')
+        const user = await userModel.findById(decodedToken._id)
         if (!user) {
             return res.status(404).json({
                 message: 'Authentication failed : user not found'
             })
         }
-        if (user.isAdmin === false) {
+        if (user.role !== 'admin') {
             return res.status(401).json({
                 message: 'Unauthorized: you are not allowed to perform this action'
             })
         }
-        req.user = decodedToken
+        req.user = user
         next()
 
     } catch (error) {
@@ -104,20 +104,19 @@ exports.authenticateUserToAdmin = async(req,res,next)=>{
                  message: 'Invalid Token'
             })
         }
-        const decodedToken = jwt.verify(token,process.env.JWT_SECRET)
-        const user = await userModel.findById(decodedToken.userId)
+        const decodedToken = jwt.verify(token, process.env.TOKEN_SECRET || 'fallback_secret')
+        const user = await userModel.findById(decodedToken._id)
         if(!user){
             return res.status(404).json({
                 message: 'user not found'
             })
         }
-        user.isAdmin= true
-        if (user.isAdmin === false) {
+        if (user.role !== 'admin') {
             return res.status(401).json({
                 message: 'Unauthorized: you are not allowed to perform this action'
             })
         }
-        req.user=user
+        req.user = user
         next()
         
     } catch (error) {

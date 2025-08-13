@@ -10,26 +10,26 @@ const { registerUserSchema, loginUserSchema } = require('../validation/user');
 exports.register = async (req, res) => {
     try {
         const validated = await validate(req.body, registerUserSchema)
-        const { name, email, password } = validated;
-        const user = await userModel.findOne({ email: email.toLowerCase() });
-        if (!user) {
+        const { fullName, username, email, password, gender } = validated;
+        const existingUser = await userModel.findOne({ email: email.toLowerCase() });
+        if (existingUser) {
             return res.status(400).json({
-                message: 'user not found'
+                message: 'User already exists with this email'
             });
         }
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = new userModel({
-            name,
-            email,
+            name: fullName,
+            email: email.toLowerCase(),
             password: hashedPassword
         });
 
-        const token = jwt.sign({ _id: newUser._id }, process.env.TOKEN_SECRET, { expiresIn: '1h' });
-        const link = `${req.protocol}://${req.get('host')}/api/v1/user-verify/${token}`
+        const token = jwt.sign({ _id: newUser._id }, process.env.TOKEN_SECRET || 'fallback_secret', { expiresIn: '1h' });
+        const link = `${req.protocol}://${req.get('host')}/api/user/verify-email/${token}`
 
-        const firstName = newUser.fullName.split(' ')[1]
+        const firstName = newUser.name.split(' ')[0]
 
 
         const mailDetails = {
